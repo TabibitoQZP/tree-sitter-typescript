@@ -58,7 +58,7 @@ module.exports = grammar({
       $.for_in_statement,
       $.while_statement,
       $.do_statement,
-      // $.import_statement,
+      $.import_statement,
       $.statement_block,
       $.expression_statement,
       $.declaration,
@@ -145,6 +145,16 @@ module.exports = grammar({
       )),
       optional(';'),
     )),
+    // import statement
+    import_statement: $ => seq(
+      'import',
+      '{',
+      commaSep($.identifier),
+      '}',
+      'from',
+      choice($.identifier, $.string),
+      optional(';'),
+    ),
     // function_declaration: $ => prec.right('declaration', seq(
     //   optional('async'),
     //   'function',
