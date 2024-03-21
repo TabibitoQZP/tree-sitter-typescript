@@ -2,7 +2,8 @@ module.exports = grammar({
   name: 'typescript',
 
   precedences: $ => [
-    ['call',
+    ['member',
+      'call',
       'unary_void',
       'binary_exp',
       'binary_times',
@@ -19,7 +20,7 @@ module.exports = grammar({
       'ternary'],
     ['assign'],
     [$._expressions, $.binary_expression],
-    [$.primary_expression, $.member_expression, $.call_expression],
+    [$.primary_expression, $.member_expression, $.call_expression, $.subscript_expression],
     [$.binary_expression, $.single_declaration],
     [$._toplevel_statement, $.statement],
     [$.expression_statement, $.expression],
@@ -54,7 +55,7 @@ module.exports = grammar({
     statement: $ => choice(
       $.if_statement,
       $.for_statement,
-      // $.for_in_statement,
+      $.for_in_statement,
       // $.while_statement,
       // $.do_statement,
       // $.import_statement,
@@ -104,6 +105,24 @@ module.exports = grammar({
       ')',
       field('body', $.statement),
     ),
+
+    // for in statement
+    for_in_statement: $ => seq(
+      'for',
+      optional('await'),
+      $._for_header,
+      field('body', $.statement),
+    ),
+    _for_header: $ => seq(
+      '(',
+      seq(
+        field('kind', choice('let', 'const')),
+        field('left', $.identifier),
+      ),
+      field('operator', choice('in', 'of')),
+      field('right', $._expressions),
+      ')',
+    ),
     // function_declaration: $ => prec.right('declaration', seq(
     //   optional('async'),
     //   'function',
@@ -130,10 +149,11 @@ module.exports = grammar({
       $._quote_primary_expression,
       $.array,
       $.object,
+      $.subscript_expression, // a[0] 这种的
     ),
     array: $ => seq(
       '[',
-      commaSep($.expression),
+      commaSep($._expressions),
       ']',
     ),
     object: $ => prec('object', seq(
@@ -141,9 +161,13 @@ module.exports = grammar({
       commaSep(seq(
         field('key', $.identifier),
         ':',
-        field('value', $.expression)
+        field('value', $._expressions)
       )),
       '}',
+    )),
+    subscript_expression: $ => prec.right('member', seq(
+      field('object', $.identifier),
+      '[', field('index', $._expressions), ']',
     )),
 
     assignment_expression: $ => prec.right('assign', seq(
