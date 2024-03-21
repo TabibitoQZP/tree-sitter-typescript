@@ -56,8 +56,8 @@ module.exports = grammar({
       $.if_statement,
       $.for_statement,
       $.for_in_statement,
-      // $.while_statement,
-      // $.do_statement,
+      $.while_statement,
+      $.do_statement,
       // $.import_statement,
       $.statement_block,
       $.expression_statement,
@@ -123,6 +123,28 @@ module.exports = grammar({
       field('right', $._expressions),
       ')',
     ),
+    // while statement
+    while_statement: $ => seq(
+      'while',
+      field('condition', seq(
+        '(',
+        $._expressions,
+        ')',
+      )),
+      field('body', $.statement),
+    ),
+    // do statement
+    do_statement: $ => prec.right(seq(
+      'do',
+      field('body', $.statement),
+      'while',
+      field('condition', seq(
+        '(',
+        $._expressions,
+        ')',
+      )),
+      optional(';'),
+    )),
     // function_declaration: $ => prec.right('declaration', seq(
     //   optional('async'),
     //   'function',
