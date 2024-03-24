@@ -19,6 +19,7 @@ module.exports = grammar({
       'logical_or',
       'ternary'],
     ['assign'],
+    ['declaration'],
     [$._expressions, $.binary_expression],
     [$.primary_expression, $.member_expression, $.call_expression, $.subscript_expression],
     [$.binary_expression, $.single_declaration],
@@ -46,7 +47,7 @@ module.exports = grammar({
     // lab2
     declaration: $ => choice(
       $.variable_declaration,
-      // $.function_declaration, // lab2
+      $.function_declaration, // lab2
       // $.function_signature, // lab2
       // $.class_declaration, // lab2
       // $.interface_declaration, // lab2
@@ -62,6 +63,12 @@ module.exports = grammar({
       $.statement_block,
       $.expression_statement,
       $.declaration,
+      $.return_statement,
+    ),
+    return_statement: $ => seq(
+      'return',
+      optional($._expressions),
+      ';',
     ),
     expression_statement: $ => seq(
       $._expressions,
@@ -155,14 +162,28 @@ module.exports = grammar({
       choice($.identifier, $.string),
       optional(';'),
     ),
-    // function_declaration: $ => prec.right('declaration', seq(
-    //   optional('async'),
-    //   'function',
-    //   field('name', $.identifier),
-    //   $._call_signature,
-    //   field('body', $.statement_block),
-    //   optional($._automatic_semicolon),
-    // )),
+    function_declaration: $ => prec.right('declaration', seq(
+      optional('async'),
+      'function',
+      field('name', $.identifier),
+      optional(seq(
+        '<',
+        commaSep1($.identifier),
+        '>',
+      )),
+      $._call_signature,
+      field('body', $.statement_block),
+      optional(';'),
+    )),
+    _call_signature: $ => field('parameters', $.formal_parameters),
+    formal_parameters: $ => seq(
+      '(',
+      optional(seq(
+        commaSep1($.single_declaration),
+        optional(','),
+      )),
+      ')',
+    ),
 
     _expressions: $ => choice(
       $.primary_expression,
@@ -182,6 +203,19 @@ module.exports = grammar({
       $.array,
       $.object,
       $.subscript_expression, // a[0] 这种的
+      $.arrow_function, // () => {} 这类
+    ),
+    arrow_function: $ => seq(
+      optional('async'),
+      choice(
+        field('parameter', $.identifier),
+        $._call_signature,
+      ),
+      '=>',
+      field('body', choice(
+        $.expression,
+        $.statement_block,
+      )),
     ),
     array: $ => seq(
       '[',
@@ -276,7 +310,8 @@ module.exports = grammar({
     ),
     single_declaration: $ => seq(
       $.identifier,
-      optional(seq(':', choice('boolean', 'number', 'string'))),
+      optional(seq(':', choice('boolean', 'number', 'string', $.identifier))),
+      optional('[]'),
       optional(seq('=', $.primary_expression))
     ),
     variable_declaration: $ => seq(
