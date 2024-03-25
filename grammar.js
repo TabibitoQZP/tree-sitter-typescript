@@ -19,7 +19,9 @@ module.exports = grammar({
       'logical_or',
       'ternary'],
     ['assign'],
+    ['declaration'],
     [$._expressions, $.binary_expression],
+    [$.assignment_expression, $.primary_expression],
     [$.primary_expression, $.member_expression, $.call_expression, $.subscript_expression],
     [$.binary_expression, $.single_declaration],
     [$._toplevel_statement, $.statement],
@@ -46,7 +48,7 @@ module.exports = grammar({
     // lab2
     declaration: $ => choice(
       $.variable_declaration,
-      // $.function_declaration, // lab2
+      $.function_declaration, // lab2
       // $.function_signature, // lab2
       // $.class_declaration, // lab2
       // $.interface_declaration, // lab2
@@ -62,6 +64,12 @@ module.exports = grammar({
       $.statement_block,
       $.expression_statement,
       $.declaration,
+      $.return_statement,
+    ),
+    return_statement: $ => seq(
+      'return',
+      optional($._expressions),
+      ';',
     ),
     expression_statement: $ => seq(
       $._expressions,
@@ -155,14 +163,21 @@ module.exports = grammar({
       choice($.identifier, $.string),
       optional(';'),
     ),
-    // function_declaration: $ => prec.right('declaration', seq(
-    //   optional('async'),
-    //   'function',
-    //   field('name', $.identifier),
-    //   $._call_signature,
-    //   field('body', $.statement_block),
-    //   optional($._automatic_semicolon),
-    // )),
+    function_declaration: $ => prec.right('declaration', seq(
+      optional('async'),
+      'function',
+      field('name', $.identifier),
+      optional(seq(
+        '<',
+        commaSep1($.identifier),
+        '>',
+      )),
+      $._call_signature,
+      ':',
+      $.identifier,
+      field('body', $.statement_block),
+      optional(';'),
+    )),
 
     _expressions: $ => choice(
       $.primary_expression,
@@ -182,6 +197,36 @@ module.exports = grammar({
       $.array,
       $.object,
       $.subscript_expression, // a[0] 这种的
+      $.arrow_function, // 用于实现()=>{}形式
+      $.function_expression, //用于实现function(){}形式, 本质和上面一样
+      $._call_signature, // 实现括号内部, 否则每次现场正则太烦了
+    ),
+    function_expression: $ => seq(
+      'function',
+      $._call_signature,
+      $.statement_block,
+    ),
+    arrow_function: $ => seq(
+      choice($.identifier, $._call_signature),
+      '=>',
+      $._expressions,
+    ),
+    _call_signature: $ => seq(
+      '(',
+      commaSep(seq(
+        $.identifier,
+        ':',
+        choice(
+          seq($.identifier, optional('[]')), // type[] 格式
+          $.arrow_function, // ()=>{}
+        ),
+        optional(seq(
+          '=',
+          $._expressions,
+        )),
+      )),
+      optional(','),
+      ')'
     ),
     array: $ => seq(
       '[',
@@ -269,7 +314,7 @@ module.exports = grammar({
     ),
     member_expression: $ => choice(
       prec('call', seq(
-        sep1($.identifier, '.'),
+        sep1(choice($.call_expression, $.identifier), '.'),
         '.',
         $.call_expression,
       )),
