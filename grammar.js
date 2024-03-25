@@ -173,8 +173,7 @@ module.exports = grammar({
         '>',
       )),
       $._call_signature,
-      ':',
-      $.identifier,
+      optional(seq(':', $.identifier)),
       field('body', $.statement_block),
       optional(';'),
     )),
@@ -199,8 +198,10 @@ module.exports = grammar({
       $.subscript_expression, // a[0] 这种的
       $.arrow_function, // 用于实现()=>{}形式
       $.function_expression, //用于实现function(){}形式, 本质和上面一样
+      $.template_string, // lab2 需要实现
       $._call_signature, // 实现括号内部, 否则每次现场正则太烦了
     ),
+    template_string: $ => /`[^`]*`/,
     function_expression: $ => seq(
       'function',
       $._call_signature,
