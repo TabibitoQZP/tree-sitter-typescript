@@ -50,7 +50,7 @@ module.exports = grammar({
       $.variable_declaration,
       $.function_declaration, // lab2
       // $.function_signature, // lab2
-      // $.class_declaration, // lab2
+      $.class_declaration, // lab2
       // $.interface_declaration, // lab2
     ),
 
@@ -163,6 +163,7 @@ module.exports = grammar({
       choice($.identifier, $.string),
       optional(';'),
     ),
+    // function declaration
     function_declaration: $ => prec.right('declaration', seq(
       optional('async'),
       'function',
@@ -177,6 +178,44 @@ module.exports = grammar({
       field('body', $.statement_block),
       optional(';'),
     )),
+    // class declaration
+    class_declaration: $ => prec.right('declaration', seq(
+      repeat($.decorator),
+      'class',
+      field('name', $.identifier),
+      optional(seq(
+        'extends',
+        field('extends', $.identifier),
+        optional(seq('<', $.identifier, '>'))
+      )),
+      optional(seq(
+        'implements',
+        field('implements', $.identifier),
+        optional(seq('<', $.identifier, '>'))
+      )),
+      optional(seq('<', $.identifier, 'extends', $.identifier)),
+      field('body', $.class_body),
+    )),
+    decorator: $ => seq(
+      '@',
+      choice($.identifier, $.member_expression),
+      optional(seq('(', commaSep($.primary_expression), ')', optional(','))),
+    ),
+    class_body: $ => seq(
+      '{',
+      repeat(choice(
+        seq($.single_declaration, ';'),
+        seq(field('member', $.method_definition), optional(';')),
+      )),
+      '}',
+    ),
+    method_definition: $ => seq(
+      optional($.decorator),
+      field('name', $.identifier),
+      $._call_signature,
+      optional(seq(':', $.identifier)),
+      field('body', $.statement_block),
+    ),
 
     _expressions: $ => choice(
       $.primary_expression,
@@ -215,6 +254,7 @@ module.exports = grammar({
     _call_signature: $ => seq(
       '(',
       choice(commaSep(seq(
+        optional(choice('const', 'public', 'private')),
         $.identifier,
         ':',
         choice(
@@ -324,7 +364,7 @@ module.exports = grammar({
     ),
     single_declaration: $ => seq(
       $.identifier,
-      optional(seq(':', choice('boolean', 'number', 'string'))),
+      optional(seq(':', $.identifier)),
       optional(seq('=', $.primary_expression))
     ),
     variable_declaration: $ => seq(
