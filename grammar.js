@@ -214,7 +214,7 @@ module.exports = grammar({
     ),
     _call_signature: $ => seq(
       '(',
-      commaSep(seq(
+      choice(commaSep(seq(
         $.identifier,
         ':',
         choice(
@@ -226,6 +226,8 @@ module.exports = grammar({
           $._expressions,
         )),
       )),
+      seq('...', 'args', ':', 'any', '[]'),
+      ),
       optional(','),
       ')'
     ),
@@ -249,7 +251,7 @@ module.exports = grammar({
     )),
 
     assignment_expression: $ => prec.right('assign', seq(
-      field('left', $.identifier),
+      field('left', choice($.member_expression, $.identifier)),
       '=',
       field('right', $.primary_expression),
     )),
@@ -317,7 +319,7 @@ module.exports = grammar({
       prec('call', seq(
         sep1(choice($.call_expression, $.identifier), '.'),
         '.',
-        $.call_expression,
+        choice($.call_expression, $.identifier),
       )),
     ),
     single_declaration: $ => seq(
