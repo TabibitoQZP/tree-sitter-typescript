@@ -1,6 +1,8 @@
 module.exports = grammar({
   name: 'typescript',
 
+  extras: $ => [$.comment, /[\s\p{Zs}\uFEFF\u2028\u2029\u2060\u200B]/],
+
   precedences: $ => [
     ['member',
       'call',
@@ -36,9 +38,17 @@ module.exports = grammar({
       $.expression,
       $.declaration, // lab2
       $.statement, // lab2
-      $.comment,
     ),
-    comment: $=> seq('//', /.*/),
+    comment: $ => choice(
+      token(choice(
+        seq('//', /.*/),
+        seq(
+          '/*',
+          /[^*]*\*+([^/*][^*]*\*+)*/,
+          '/',
+        ),
+      )),
+    ),
 
     expression: $ => seq(
       $._expressions,
@@ -51,7 +61,7 @@ module.exports = grammar({
       $.function_declaration, // lab2
       // $.function_signature, // lab2
       $.class_declaration, // lab2
-      // $.interface_declaration, // lab2
+      $.interface_declaration, // lab2
     ),
 
     statement: $ => choice(
@@ -196,6 +206,41 @@ module.exports = grammar({
       optional(seq('<', $.identifier, 'extends', $.identifier)),
       field('body', $.class_body),
     )),
+
+    // interface declaration
+    interface_declaration: $ => seq(
+      optional('export'),
+      'interface',
+      field('name', $.identifier),
+      optional(seq('extends', field('extends', $.identifier))),
+      optional(seq('<', $.identifier, 'extends', $.identifier, '>')),
+      field('body', $.interface_body),
+    ),
+    interface_body: $ => seq(
+      '{',
+      repeat(seq(choice($.single_declaration, $.method_signature, $.property_signature, $.index_signature), optional(';'))),
+      '}'
+    ),
+    method_signature: $ => seq(
+      field('name', $.identifier),
+      $._call_signature,
+      ':',
+      $.identifier,
+    ),
+    index_signature: $ => seq(
+      '[',
+      commaSep(seq($.identifier, ':', $.identifier)),
+      ']',
+      ':',
+      $.identifier,
+    ),
+    property_signature: $ => seq(
+      field('name', $.identifier),
+      ':',
+      $._call_signature,
+      '=>',
+      $.identifier,
+    ),
     decorator: $ => seq(
       '@',
       choice($.identifier, $.member_expression),
