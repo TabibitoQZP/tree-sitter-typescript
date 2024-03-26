@@ -59,7 +59,7 @@ module.exports = grammar({
     declaration: $ => choice(
       $.variable_declaration,
       $.function_declaration, // lab2
-      // $.function_signature, // lab2
+      $.function_signature, // lab2
       $.class_declaration, // lab2
       $.interface_declaration, // lab2
     ),
@@ -215,6 +215,15 @@ module.exports = grammar({
       optional(seq('extends', field('extends', $.identifier))),
       optional(seq('<', $.identifier, 'extends', $.identifier, '>')),
       field('body', $.interface_body),
+    ),
+    // function signature
+    function_signature: $ => seq(
+      'function',
+      field('name', $.identifier),
+      $._call_signature,
+      ':',
+      $.identifier,
+      ';',
     ),
     interface_body: $ => seq(
       '{',
